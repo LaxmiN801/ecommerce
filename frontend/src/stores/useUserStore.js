@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import axios from "../lib/axios";
+import axios from "../lib/axios.js";
 import { toast } from "react-hot-toast";
 
 export const useUserStore = create((set, get) => ({
@@ -17,29 +17,30 @@ export const useUserStore = create((set, get) => ({
 
 		try {
 			const res = await axios.post("/auth/signup", { name, email, password });
-			set({ user: res.data, loading: false });
+			set({ user: res.data.user, loading: false });
 		} catch (error) {
 			set({ loading: false });
-			toast.error(error.response.data.message || "An error occurred");
+			toast.error(error.response?.data?.message || "An error occurred");
 		}
 	},
 
-    login: async ({email, password}) => {
-        set({loading: true});
+    login: async ({ email, password }) => {
+	set({ loading: true });
 
-        try {
-            const res = await axios.post("/auth/login", {email, password});
-            set({user: res.data, loading: false})
-        } catch (error) {
-            set({ loading: false });
-			toast.error(error.response.data.message || "An error occurred");
-        }
-    },
+	try {
+		const res = await axios.post("/auth/login", { email, password });
+		set({ user: res.data.user, loading: false });
+	} catch (error) {
+		set({ loading: false });
+		toast.error(error.response?.data?.message || "An error occurred");
+	}
+},
+
 
     logout: async () => {
 		try {
 			await axios.post("/auth/logout");
-			set({ user: null });
+	 		set({ user: null });
 		} catch (error) {
 			toast.error(error.response?.data?.message || "An error occurred during logout");
 		}
@@ -48,8 +49,8 @@ export const useUserStore = create((set, get) => ({
     checkAuth: async () => {
 		set({ checkingAuth: true });
 		try {
-			const response = await axios.get("/auth/profile");
-			set({ user: response.data, checkingAuth: false });
+			const response = await axios.get("/auth/getProfile");
+			set({ user: response.data.user, checkingAuth: false });
 		} catch (error) {
 			console.log(error.message);
 			set({ checkingAuth: false, user: null });

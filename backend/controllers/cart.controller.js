@@ -1,39 +1,58 @@
-import {asyncHandler} from "../utils/asyncHandler.js";
-import { ApiError } from "../utils/ApiError.js";
 import Product from "../models/product.model.js";
 
-export const getCartProducts = asyncHandler(async (req, res) => {
-    const productIds = await req.user.cartItems.map(item => item.product)
-    const products = await Product.find({ _id: { $in: productIds } });
+export const getCartProducts = async (req, res) => {
+	try {
+		const productIds = req.user.cartItems.map(item => item.product);
+		const products = await Product.find({ _id: { $in: productIds } });
 
-    const cartItems = products.map((product) => {
-        const item = req.user.cartItems.find((cartItem) => cartItem.id === product.id);
-        return { ...product.toJSON(), quantity: item.quantity };
-    });
+		const cartItems = products.map((product) => {
+			const item = req.user.cartItems.find((cartItem) => String(cartItem.product) === String(product._id));
+			return { ...product.toJSON(), quantity: item.quantity };
+		});
 
-    res.json(cartItems);
-});
+		return res.json({
+			success: true,
+			cartItems: cartItems,
+		});
+	} catch (error) {
+		console.error("Error fetching cart products:", error.message);
+		res.status(500).json({ success: false, message: "Failed to fetch cart products" });
+	}
+};
 
-export const addToCart = asyncHandler(async (req, res) => {
-    const { productId } = req.body;
-    const user = req.user;
+export const addToCart = async (req, res) => {
+	try {
+		const { productId } = req.body;
+		const user = req.user;
 
-    const existingItem = user.cartItems.find(
-        (item) => item.product.toString() === productId
-    );
+		if (!productId) {
+			return res.status(400).json({ success: false, message: "Product ID is required" });
+		}
 
-    if (existingItem) {
-        existingItem.quantity += 1;
-    } else {
-        user.cartItems.push({ product: productId });
-    }
+		const existingItem = user.cartItems.find(
+			(item) => String(item.product) === String(productId)
+		);
 
-    await user.save();
-    res.json(user.cartItems);
-});
+		if (existingItem) {
+			existingItem.quantity += 1;
+		} else {
+			user.cartItems.push({ product: productId, quantity: 1 });
+		}
 
-export const removeAllFromCart = asyncHandler(async (req, res) => {
-    const { productId } = req.body;
+		await user.save();
+		return res.json({
+			success: true,
+			cartItems: user.cartItems,
+		});
+	} catch (error) {
+		console.error("Error adding to cart:", error.message);
+		res.status(500).json({ success: false, message: "Failed to add item to cart" });
+	}
+};
+
+export const removeAllFromCart = async (req, res) => {
+	try {
+		const { productId } = req.body;
 		const user = req.user;
 
 		if (!productId) {
@@ -45,30 +64,45 @@ export const removeAllFromCart = asyncHandler(async (req, res) => {
 		}
 
 		await user.save();
-		res.json(user.cartItems);
-});
+		return res.json({
+			success: true,
+			cartItems: user.cartItems,
+		});
+	} catch (error) {
+		console.error("Error removing from cart:", error.message);
+		res.status(500).json({ success: false, message: "Failed to remove items from cart" });
+	}
+};
 
-export const updateQuantity = asyncHandler(async (req, res) => {
-    const { id: productId } = req.params;
-	const { quantity } = req.body;
-	const user = req.user;
+export const updateQuantity = async (req, res) => {
+	try {
+		const { id: productId } = req.params;
+		const { quantity } = req.body;
+		const user = req.user;
 
-	const existingItem = user.cartItems.find(
-		(item) => String(item.product) === String(productId)
-	);
+		const existingItem = user.cartItems.find(
+			(item) => String(item.product) === String(productId)
+		);
 
-    if (!existingItem) {
-        throw new ApiError(404, "Product not found")
-    }
-    if (quantity === 0) {
-        user.cartItems = user.cartItems.filter(
-            (item) => String(item.product) !== String(productId)
-        );
-        await user.save();
-        return res.json(user.cartItems);
-    }
+		if (!existingItem) {
+			return res.status(404).json({ success: false, message: "Product not found in cart" });
+		}
 
-    existingItem.quantity = quantity;
-    await user.save();
-    res.json(user.cartItems);
-});
+		if (quantity === 0) {
+			user.cartItems = user.cartItems.filter(
+				(item) => String(item.product) !== String(productId)
+			);
+		} else {
+			existingItem.quantity = quantity;
+		}
+
+		await user.save();
+		return res.json({
+			success: true,
+			cartItems: user.cartItems,
+		});
+	} catch (error) {
+		console.error("Error updating cart quantity:", error.message);
+		res.status(500).json({ success: false, message: "Failed to update quantity" });
+	}
+};

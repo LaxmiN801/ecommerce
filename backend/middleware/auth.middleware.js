@@ -1,34 +1,35 @@
-import { ApiError } from "../utils/ApiError.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
-import jwt from "jsonwebtoken"                                       
-import User  from "../models/user.model.js";
+import jwt from "jsonwebtoken";
+import User from "../models/user.model.js";
 
-export const protectRoute = asyncHandler(async(req, _, next) => {
+export const protectRoute = async (req, res, next) => {
     try {
-        const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "")
+        const token =
+            req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
+
         if (!token) {
-            throw new ApiError(401, "Unauthorized request")
+            return res.status(401).json({ success: false, message: "Unauthorized request" });
         }
-    
-        const decodedToken = await jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
-        const user = await User.findById(decodedToken?._id).select("-password -refreshToken")
-    
+
+        const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+
+        // Use decodedToken.userId or decodedToken.userId depending on your JWT payload
+        const user = await User.findById(decodedToken.userId).select("-password -refreshToken");
+
         if (!user) {
-                
-            throw new ApiError(401, "Invalid Access Token")
+            return res.status(401).json({ success: false, message: "Invalid access token" });
         }
-    
+
         req.user = user;
-        next()
+        next();
     } catch (error) {
-        throw new ApiError(401, error?.message || "Invalid access token")
+        return res.status(401).json({ success: false, message: error.message || "Invalid access token" });
     }
-})
+};
 
 export const adminRoute = (req, res, next) => {
-	if (req.user && req.user.role === "admin") {
-		next();
-	} else {
-		return res.status(403).json({ message: "Access denied - Admin only" });
-	}
+    if (req.user && req.user.role === "admin") {
+        next();
+    } else {
+        return res.status(403).json({ success: false, message: "Access denied - Admin only" });
+    }
 };

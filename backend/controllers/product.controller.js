@@ -1,107 +1,153 @@
-import { asyncHandler } from "../utils/asyncHandler.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
-import { ApiError } from "../utils/ApiError.js";
 import Product from "../models/product.model.js";
 import cloudinary from "../lib/cloudinary.js";
 
-export const getAllProducts = asyncHandler(async (req, res) => {
-    const products = await Product.find({});
-    return res.status(202).json(new ApiResponse(202, products, "All products delivered"))
-});
+export const getAllProducts = async (req, res) => {
+    try {
+        const products = await Product.find({});
+        return res.status(200).json({
+            success: true,
+            message: "All products delivered",
+            products: products
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
 
-export const getFeaturedProducts = asyncHandler(async (req, res) => {
-    const featuredProducts = await Product.find({ isFeatured: true }).lean();
+export const getFeaturedProducts = async (req, res) => {
+    try {
+        const featuredProducts = await Product.find({ isFeatured: true }).lean();
 
-	if (!featuredProducts) {
-		throw new ApiError(404, "No featured Product found");
-	}
+        if (!featuredProducts || featuredProducts.length === 0) {
+            return res.status(404).json({ success: false, message: "No featured product found" });
+        }
 
-    return res.status(202).json(new ApiResponse(202, featuredProducts, "All featured products delivered"))
-});
+        return res.status(200).json({
+            success: true,
+            message: "All featured products delivered",
+            products: featuredProducts
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
 
-export const getProductsByCategory = asyncHandler(async (req, res) => {
-    const {category} = req.params;
-    const categoryProducts = await Product.find({ category: category }).lean();
+export const getProductsByCategory = async (req, res) => {
+    try {
+        const { category } = req.params;
+        const categoryProducts = await Product.find({ category }).lean();
 
-    if (!categoryProducts) {
-		throw new ApiError(404, "No Product found in this category");
-	}
+        if (!categoryProducts || categoryProducts.length === 0) {
+            return res.status(404).json({ success: false, message: "No products found in this category" });
+        }
 
-    return res.status(202).json(new ApiResponse(202, categoryProducts, "All Products in this category are delivered"))
-});
+        return res.status(200).json({
+            success: true,
+            message: "All products in this category are delivered",
+            products: categoryProducts
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
 
-export const getRecommendedProducts = asyncHandler(async (req, res) => {
-    const products = await Product.aggregate([
-        {
-            $sample: {size: 4}
-        },
-        {
-            $project: {
-                _id: 1,
-                name: 1,
-                description: 1,
-                image: 1,
-                price: 1,
+export const getRecommendedProducts = async (req, res) => {
+    try {
+        const products = await Product.aggregate([
+            { $sample: { size: 4 } },
+            {
+                $project: {
+                    _id: 1,
+                    name: 1,
+                    description: 1,
+                    image: 1,
+                    price: 1,
+                }
+            }
+        ]);
+
+        return res.status(200).json({
+            success: true,
+            message: "Here are the recommended products",
+            products: products
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const createProduct = async (req, res) => {
+    try {
+        const { name, description, price, image, category } = req.body;
+
+        let cloudinaryResponse = null;
+        if (image) {
+            cloudinaryResponse = await cloudinary.uploader.upload(image, { folder: "products" });
+        }
+
+        const product = await Product.create({
+            name,
+            description,
+            price,
+            image: cloudinaryResponse?.secure_url || "",
+            category,
+        });
+
+        return res.status(201).json({
+            success: true,
+            products: product
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const toggleFeaturedProduct = async (req, res) => {
+    try {
+        const product = await Product.findById(req.params.id);
+
+        if (!product) {
+            return res.status(404).json({ success: false, message: "Product not found" });
+        }
+
+        product.isFeatured = !product.isFeatured;
+        const updatedProduct = await product.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Product featured status updated",
+            products: updatedProduct
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const deleteProduct = async (req, res) => {
+    try {
+        const product = await Product.findById(req.params.id);
+
+        if (!product) {
+            return res.status(404).json({ success: false, message: "Product not found" });
+        }
+
+        if (product.image) {
+            const publicId = product.image.split("/").pop().split(".")[0];
+            try {
+                await cloudinary.uploader.destroy(`products/${publicId}`);
+                console.log("Deleted image from Cloudinary");
+            } catch (error) {
+                console.log("Error deleting image from Cloudinary", error);
             }
         }
-    ])
 
-    return res.status(202).json(new ApiResponse(202, products, "Here are the recommended products"))
-});
+        await Product.findByIdAndDelete(req.params.id);
 
-export const createProduct = asyncHandler(async (req, res) => {
-    const { name, description, price, image, category } = req.body;
-
-		let cloudinaryResponse = null;
-
-		if (image) {
-			cloudinaryResponse = await cloudinary.uploader.upload(image, { folder: "products" });
-		}
-
-		const product = await Product.create({
-			name,
-			description,
-			price,
-			image: cloudinaryResponse?.secure_url ? cloudinaryResponse.secure_url : "",
-			category,
-		});
-
-		return res.status(201).json(new ApiResponse(202, product));
-});
-
-export const toggleFeaturedProduct = asyncHandler(async (req, res) => {
-    const product = await Product.findById(req.params.id);
-
-	if (!product) {
-		throw new ApiError(404, "Product not found");
-	}
-
-	product.isFeatured = !product.isFeatured;
-	const updatedProduct = await product.save();
-
-	return res
-		.status(200)
-		.json(new ApiResponse(200, updatedProduct, "Product featured status updated"));
-});
-
-export const deleteProduct = asyncHandler(async (req, res) => {
-    const product = await Product.findById(req.params.id);
-
-		if (!product) {
-			return res.status(404).json({ message: "Product not found" });
-		}
-
-		if (product.image) {
-			const publicId = product.image.split("/").pop().split(".")[0];
-			try {
-				await cloudinary.uploader.destroy(`products/${publicId}`);
-				console.log("deleted image from cloduinary");
-			} catch (error) {
-				console.log("error deleting image from cloduinary", error);
-			}
-		}
-
-		await Product.findByIdAndDelete(req.params.id);
-
-		return res.json({ message: "Product deleted successfully" });
-});
+        return res.json({
+            success: true,
+            message: "Product deleted successfully"
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};

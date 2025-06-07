@@ -4,7 +4,6 @@ dotenv.config();
 import express from "express";
 import cookieParser from "cookie-parser";
 import connectDB from "./config/db.js";
-import { errorMiddleware } from "./middleware/error.middleware.js";
 import { protectRoute } from "./middleware/auth.middleware.js";
 import cors from "cors"
 
@@ -17,12 +16,12 @@ import analyticsRoutes from "./routes/analytics.route.js";
 
 const app = express();
 
-app.use(express.json());
+app.use(express.json({limit: "10mb"}));
 app.use(cookieParser());
 app.use(cors({
-    origin: process.env.CORS_ORIGIN,
-    credentials: true
-}))
+	origin: "http://localhost:5173",
+	credentials: true
+}));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
@@ -30,8 +29,9 @@ app.use("/api/cart", protectRoute, cartRoutes);
 app.use("/api/coupons", protectRoute, couponRoutes);
 app.use("/api/payments", protectRoute, paymentRoutes);
 app.use("/api/analytics", analyticsRoutes);
-
-app.use(errorMiddleware);
+app.get("/api/test", (req, res) => {
+  res.json({ success: true });
+});
 
 connectDB()
 .then(() => {
