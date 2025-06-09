@@ -19,7 +19,7 @@ const app = express();
 
 const __dirname = path.resolve();
 
-app.use(express.json({limit: "10mb"}));
+app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 app.use(cors({
 	origin: process.env.CLIENT_URL,
@@ -33,29 +33,29 @@ app.use("/api/coupons", protectRoute, couponRoutes);
 app.use("/api/payments", protectRoute, paymentRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.get("/api/test", (req, res) => {
-  res.json({ success: true });
+	res.json({ success: true });
 });
 
 if (process.env.NODE_ENV === "production") {
 	app.use(express.static(path.join(__dirname, "/frontend/dist")));
 
-	app.get("*", (req, res) => {
-		res.sendFile(path.resolve(__dirname, "frontend", "dist", "index.html"));
+	app.get("/*", (req, res) => {
+		res.sendFile(path.join(__dirname, "frontend", "dist", "index.html"));
 	});
 }
 
 app.use((err, req, res, next) => {
-  console.error("Unexpected error:", err.stack);
-  res.status(500).json({ message: "Something broke" });
+	console.error("Unexpected error:", err.stack);
+	res.status(500).json({ message: "Something broke" });
 });
 
 
 connectDB()
-.then(() => {
-    app.listen(process.env.PORT || 5000, ()=>{
-        console.log(`⚙️ Server is running at port : ${process.env.PORT}`);
-    })
-})
-.catch((err)=> {
-    console.log(err);
-})
+	.then(() => {
+		app.listen(process.env.PORT || 5000, () => {
+			console.log(`⚙️ Server is running at port : ${process.env.PORT}`);
+		})
+	})
+	.catch((err) => {
+		console.log(err);
+	})
