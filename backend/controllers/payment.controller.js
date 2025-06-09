@@ -1,8 +1,8 @@
 import Coupon from "../models/coupon.model.js";
 import Order from "../models/order.model.js";
+import User from "../models/user.model.js"
 import { stripe } from "../lib/stripe.js";
 
-// CREATE CHECKOUT SESSION
 export const createCheckoutSession = async (req, res) => {
 	try {
 		const { products, couponCode } = req.body;
@@ -43,10 +43,10 @@ export const createCheckoutSession = async (req, res) => {
 			cancel_url: `${process.env.CLIENT_URL}/purchase-cancel`,
 			discounts: coupon
 				? [
-						{
-							coupon: await createStripeCoupon(coupon.discountPercentage),
-						},
-				  ]
+					{
+						coupon: await createStripeCoupon(coupon.discountPercentage),
+					},
+				]
 				: [],
 			metadata: {
 				userId: req.user._id.toString(),
@@ -79,10 +79,20 @@ export const createCheckoutSession = async (req, res) => {
 	}
 };
 
-// HANDLE CHECKOUT SUCCESS
 export const checkoutSuccess = async (req, res) => {
 	try {
 		const { sessionId } = req.body;
+
+		const existingOrder = await Order.findOne({ stripeSessionId: sessionId });
+		if (existingOrder) {
+			console.log("Order already exists for this sessionId:", sessionId);
+			return res.status(200).json({
+				success: true,
+				message: "Order already created",
+				orderId: existingOrder._id,
+			});
+		}
+
 		const session = await stripe.checkout.sessions.retrieve(sessionId);
 
 		if (session.payment_status !== "paid") {
@@ -100,31 +110,48 @@ export const checkoutSuccess = async (req, res) => {
 		}
 
 		const products = JSON.parse(session.metadata.products);
-		const newOrder = new Order({
-			user: session.metadata.userId,
-			products: products.map((product) => ({
-				product: product.id,
-				quantity: product.quantity,
-				price: product.price,
-			})),
-			totalAmount: session.amount_total / 100,
-			stripeSessionId: sessionId,
-		});
 
-		await newOrder.save();
+		try {
+			const newOrder = new Order({
+				user: session.metadata.userId,
+				products: products.map((product) => ({
+					product: product.id,
+					quantity: product.quantity,
+					price: product.price,
+				})),
+				totalAmount: session.amount_total / 100,
+				stripeSessionId: sessionId,
+			});
 
-		return res.status(200).json({
-			success: true,
-			message: "Payment successful, order created, and coupon deactivated if used.",
-			orderId: newOrder._id,
-		});
+			await newOrder.save();
+
+			await User.findByIdAndUpdate(session.metadata.userId, {
+				$set: { cartItems: [] },
+			});
+
+			return res.status(200).json({
+				success: true,
+				message: "Order successfully created",
+				orderId: newOrder._id,
+			});
+		} catch (dbError) {
+			if (dbError.code === 11000) {
+				// Duplicate key error — already saved by parallel request
+				const existing = await Order.findOne({ stripeSessionId: sessionId });
+				return res.status(200).json({
+					success: true,
+					message: "Order already created",
+					orderId: existing._id,
+				});
+			}
+			throw dbError; // Some other DB error
+		}
 	} catch (error) {
 		console.error("Error processing checkout success:", error.message);
 		res.status(500).json({ success: false, message: "Failed to process order after payment" });
 	}
 };
 
-// CREATE STRIPE COUPON
 async function createStripeCoupon(discountPercentage) {
 	const coupon = await stripe.coupons.create({
 		percent_off: discountPercentage,
@@ -133,7 +160,6 @@ async function createStripeCoupon(discountPercentage) {
 	return coupon.id;
 }
 
-// CREATE NEW COUPON FOR USER
 async function createNewCoupon(userId) {
 	await Coupon.findOneAndDelete({ userId });
 

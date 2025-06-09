@@ -1,108 +1,100 @@
-import React from 'react'
+import { useEffect, useState } from "react";
+import { ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
+import { useCartStore } from "../stores/useCartStore";
 
-function FeaturedProducts() {
-  return (
-    <div>FeaturedProducts</div>
-  )
-}
+const FeaturedProducts = ({ featuredProducts }) => {
+	const [currentIndex, setCurrentIndex] = useState(0);
+	const [itemsPerPage, setItemsPerPage] = useState(4);
+	const { addToCart } = useCartStore();
 
-export default FeaturedProducts
+	useEffect(() => {
+		const handleResize = () => {
+			if (window.innerWidth < 640) setItemsPerPage(1);
+			else if (window.innerWidth < 1024) setItemsPerPage(2);
+			else if (window.innerWidth < 1280) setItemsPerPage(3);
+			else setItemsPerPage(4);
+		};
+		handleResize();
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, []);
 
-// import { useEffect, useState } from "react";
-// import { ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
-// import { useCartStore } from "../stores/useCartStore";
+	const nextSlide = () => {
+		setCurrentIndex((prev) => prev + itemsPerPage);
+	};
+	const prevSlide = () => {
+		setCurrentIndex((prev) => prev - itemsPerPage);
+	};
 
-// const FeaturedProducts = ({ featuredProducts }) => {
-// 	const [currentIndex, setCurrentIndex] = useState(0);
-// 	const [itemsPerPage, setItemsPerPage] = useState(4);
+	const isStartDisabled = currentIndex === 0;
+	const isEndDisabled = currentIndex >= featuredProducts.length - itemsPerPage;
 
-// 	const { addToCart } = useCartStore();
+	return (
+		<section className='py-12 bg-gray-100'>
+			<div className='text-center mb-8'>
+				<h2 className='text-4xl font-extrabold text-gray-800'>Featured Products</h2>
+			</div>
 
-// 	useEffect(() => {
-// 		const handleResize = () => {
-// 			if (window.innerWidth < 640) setItemsPerPage(1);
-// 			else if (window.innerWidth < 1024) setItemsPerPage(2);
-// 			else if (window.innerWidth < 1280) setItemsPerPage(3);
-// 			else setItemsPerPage(4);
-// 		};
+			<div className='relative'>
+				<div className='overflow-hidden px-4 sm:px-6'>
+					<div
+						className='flex transition-transform duration-300 ease-in-out'
+						style={{ transform: `translateX(-${currentIndex * (100 / itemsPerPage)}%)` }}
+					>
+						{featuredProducts.map((product) => (
+							<div
+								key={product._id}
+								className='w-full sm:w-1/2 lg:w-1/3 xl:w-1/4 flex-shrink-0 px-2'
+							>
+								<div className='bg-white rounded-lg shadow-lg overflow-hidden flex flex-col h-full'>
+									<div className='h-48 overflow-hidden'>
+										<img
+											src={product.image}
+											alt={product.name}
+											className='w-full h-full object-cover hover:scale-105 transition-transform duration-300'
+										/>
+									</div>
+									<div className='flex flex-col flex-grow p-4 justify-between'>
+										<div>
+											<h3 className='text-lg font-semibold text-gray-800 mb-1 line-clamp-2'>{product.name}</h3>
+											<p className='text-yellow-500 font-bold mb-3'>${product.price}</p>
+										</div>
+										<button
+											onClick={() => addToCart(product)}
+											className='mt-auto w-full bg-[#0f172a] hover:bg-yellow-400 transition-colors text-white font-semibold py-2 px-4 rounded flex items-center justify-center'
+										>
+											<ShoppingCart className='w-5 h-5 mr-2' />
+											Add to Cart
+										</button>
+									</div>
+								</div>
+							</div>
+						))}
+					</div>
+				</div>
 
-// 		handleResize();
-// 		window.addEventListener("resize", handleResize);
-// 		return () => window.removeEventListener("resize", handleResize);
-// 	}, []);
+				{/* Arrows */}
+				<button
+					onClick={prevSlide}
+					disabled={isStartDisabled}
+					className={`absolute top-1/2 -left-4 transform -translate-y-1/2 p-2 rounded-full ${
+						isStartDisabled ? "bg-gray-400 cursor-not-allowed" : "bg-[#0f172a] hover:bg-[#1e293b]"
+					}`}
+				>
+					<ChevronLeft className='w-6 h-6 text-white' />
+				</button>
+				<button
+					onClick={nextSlide}
+					disabled={isEndDisabled}
+					className={`absolute top-1/2 -right-4 transform -translate-y-1/2 p-2 rounded-full ${
+						isEndDisabled ? "bg-gray-400 cursor-not-allowed" : "bg-[#0f172a] hover:bg-[#1e293b]"
+					}`}
+				>
+					<ChevronRight className='w-6 h-6 text-white' />
+				</button>
+			</div>
+		</section>
+	);
+};
 
-// 	const nextSlide = () => {
-// 		setCurrentIndex((prevIndex) => prevIndex + itemsPerPage);
-// 	};
-
-// 	const prevSlide = () => {
-// 		setCurrentIndex((prevIndex) => prevIndex - itemsPerPage);
-// 	};
-
-// 	const isStartDisabled = currentIndex === 0;
-// 	const isEndDisabled = currentIndex >= featuredProducts.length - itemsPerPage;
-
-// 	return (
-// 		<div className='py-12'>
-// 			<div className='container mx-auto px-4'>
-// 				<h2 className='text-center text-5xl sm:text-6xl font-bold text-emerald-400 mb-4'>Featured</h2>
-// 				<div className='relative'>
-// 					<div className='overflow-hidden'>
-// 						<div
-// 							className='flex transition-transform duration-300 ease-in-out'
-// 							style={{ transform: `translateX(-${currentIndex * (100 / itemsPerPage)}%)` }}
-// 						>
-// 							{featuredProducts?.map((product) => (
-// 								<div key={product._id} className='w-full sm:w-1/2 lg:w-1/3 xl:w-1/4 flex-shrink-0 px-2'>
-// 									<div className='bg-white bg-opacity-10 backdrop-blur-sm rounded-lg shadow-lg overflow-hidden h-full transition-all duration-300 hover:shadow-xl border border-emerald-500/30'>
-// 										<div className='overflow-hidden'>
-// 											<img
-// 												src={product.image}
-// 												alt={product.name}
-// 												className='w-full h-48 object-cover transition-transform duration-300 ease-in-out hover:scale-110'
-// 											/>
-// 										</div>
-// 										<div className='p-4'>
-// 											<h3 className='text-lg font-semibold mb-2 text-white'>{product.name}</h3>
-// 											<p className='text-emerald-300 font-medium mb-4'>
-// 												${product.price.toFixed(2)}
-// 											</p>
-// 											<button
-// 												onClick={() => addToCart(product)}
-// 												className='w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2 px-4 rounded transition-colors duration-300 
-// 												flex items-center justify-center'
-// 											>
-// 												<ShoppingCart className='w-5 h-5 mr-2' />
-// 												Add to Cart
-// 											</button>
-// 										</div>
-// 									</div>
-// 								</div>
-// 							))}
-// 						</div>
-// 					</div>
-// 					<button
-// 						onClick={prevSlide}
-// 						disabled={isStartDisabled}
-// 						className={`absolute top-1/2 -left-4 transform -translate-y-1/2 p-2 rounded-full transition-colors duration-300 ${
-// 							isStartDisabled ? "bg-gray-400 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-500"
-// 						}`}
-// 					>
-// 						<ChevronLeft className='w-6 h-6' />
-// 					</button>
-
-// 					<button
-// 						onClick={nextSlide}
-// 						disabled={isEndDisabled}
-// 						className={`absolute top-1/2 -right-4 transform -translate-y-1/2 p-2 rounded-full transition-colors duration-300 ${
-// 							isEndDisabled ? "bg-gray-400 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-500"
-// 						}`}
-// 					>
-// 						<ChevronRight className='w-6 h-6' />
-// 					</button>
-// 				</div>
-// 			</div>
-// 		</div>
-// 	);
-// };
-// export default FeaturedProducts;
+export default FeaturedProducts;

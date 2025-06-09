@@ -38,9 +38,6 @@ const HomePage = () => {
 
         {!loading && products.length > 0 && (
           <div className="mt-20">
-            <h2 className="text-2xl font-semibold text-center mb-8">
-              Featured Products
-            </h2>
             <FeaturedProducts featuredProducts={products} />
           </div>
         )}
