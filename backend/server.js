@@ -44,6 +44,12 @@ if (process.env.NODE_ENV === "production") {
 	});
 }
 
+app.use((err, req, res, next) => {
+  console.error("Unexpected error:", err.stack);
+  res.status(500).json({ message: "Something broke" });
+});
+
+
 connectDB()
 .then(() => {
     app.listen(process.env.PORT || 5000, ()=>{
