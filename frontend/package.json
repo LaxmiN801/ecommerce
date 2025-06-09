@@ -13,6 +13,7 @@
     "@stripe/stripe-js": "^7.3.0",
     "@tailwindcss/vite": "^4.1.6",
     "axios": "^1.9.0",
+    "ecommerce": "file:..",
     "framer-motion": "^12.11.0",
     "lucide-react": "^0.509.0",
     "react": "^19.1.0",
