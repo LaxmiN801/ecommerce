@@ -22,7 +22,7 @@ const __dirname = path.resolve();
 app.use(express.json({limit: "10mb"}));
 app.use(cookieParser());
 app.use(cors({
-	origin: "http://localhost:5173",
+	origin: process.env.CLIENT_URL,
 	credentials: true
 }));
 
