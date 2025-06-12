@@ -1,9 +1,9 @@
 import { create } from "zustand";
-import axios from "../lib/axios.js";
+import axiosInstance from "../lib/axios.js";
 import { toast } from "react-hot-toast";
 
 export const useUserStore = create((set, get) => ({
-    user: null,
+	user: null,
 	loading: false,
 	checkingAuth: true,
 
@@ -16,7 +16,7 @@ export const useUserStore = create((set, get) => ({
 		}
 
 		try {
-			const res = await axios.post("/auth/signup", { name, email, password });
+			const res = await axiosInstance.post("/auth/signup", { name, email, password });
 			set({ user: res.data.user, loading: false });
 		} catch (error) {
 			set({ loading: false });
@@ -24,32 +24,32 @@ export const useUserStore = create((set, get) => ({
 		}
 	},
 
-    login: async ({ email, password }) => {
-	set({ loading: true });
+	login: async ({ email, password }) => {
+		set({ loading: true });
 
-	try {
-		const res = await axios.post("/auth/login", { email, password });
-		set({ user: res.data.user, loading: false });
-	} catch (error) {
-		set({ loading: false });
-		toast.error(error.response?.data?.message || "An error occurred");
-	}
-},
-
-
-    logout: async () => {
 		try {
-			await axios.post("/auth/logout");
-	 		set({ user: null });
+			const res = await axiosInstance.post("/auth/login", { email, password });
+			set({ user: res.data.user, loading: false });
+		} catch (error) {
+			set({ loading: false });
+			toast.error(error.response?.data?.message || "An error occurred");
+		}
+	},
+
+
+	logout: async () => {
+		try {
+			await axiosInstance.post("/auth/logout");
+			set({ user: null });
 		} catch (error) {
 			toast.error(error.response?.data?.message || "An error occurred during logout");
 		}
 	},
 
-    checkAuth: async () => {
+	checkAuth: async () => {
 		set({ checkingAuth: true });
 		try {
-			const response = await axios.get("/auth/getProfile");
+			const response = await axiosInstance.get("/auth/getProfile");
 			set({ user: response.data.user, checkingAuth: false });
 		} catch (error) {
 			console.log(error.message);
@@ -57,49 +57,66 @@ export const useUserStore = create((set, get) => ({
 		}
 	},
 
-	refreshToken: async () => {
-		if (get().checkingAuth) return;
+	// refreshToken: async () => {
+	// 	if (get().checkingAuth) return;
 
-		set({ checkingAuth: true });
-		try {
-			const response = await axios.post("/auth/refreshToken");
-			set({ checkingAuth: false });
-			return response.data;
-		} catch (error) {
-			set({ user: null, checkingAuth: false });
-			throw error;
-		}
-	},
+	// 	set({ checkingAuth: true });
+	// 	try {
+	// 		const response = await axiosInstance.post("/auth/refreshToken");
+	// 		set({ checkingAuth: false });
+	// 		console.log("⏳ Refreshing token...");
+	// 		return response.data;
+	// 	} catch (error) {
+	// 		set({ user: null, checkingAuth: false });
+	// 		throw error;
+	// 	}
+	// },
+	refreshToken: async () => {
+	if (get().checkingAuth) return;
+
+	set({ checkingAuth: true });
+	try {
+		const response = await axiosInstance.post("/auth/refreshToken");
+		set({ checkingAuth: false });
+		return response.data;
+	} catch (error) {
+		set({ user: null, checkingAuth: false });
+		throw error;
+	}
+},
+
 }))
 
 let refreshPromise = null;
 
-axios.interceptors.response.use(
+axiosInstance.interceptors.response.use(
 	(response) => response,
 	async (error) => {
 		const originalRequest = error.config;
+
 		if (error.response?.status === 401 && !originalRequest._retry) {
 			originalRequest._retry = true;
 
 			try {
-				
 				if (refreshPromise) {
 					await refreshPromise;
-					return axios(originalRequest);
+					return axiosInstance(originalRequest);
 				}
 
 				refreshPromise = useUserStore.getState().refreshToken();
 				await refreshPromise;
 				refreshPromise = null;
 
-				return axios(originalRequest);
+				return axiosInstance(originalRequest);
 			} catch (refreshError) {
-				
 				useUserStore.getState().logout();
 				return Promise.reject(refreshError);
 			}
 		}
+
 		return Promise.reject(error);
 	}
 );
+
+
 

@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import axios from "../lib/axios";
+import axiosInstance from "../lib/axios";
 import { Users, Package, ShoppingCart, DollarSign } from "lucide-react";
 import {
 	LineChart,
@@ -26,7 +26,7 @@ const AnalyticsTab = () => {
 	useEffect(() => {
 		const fetchAnalyticsData = async () => {
 			try {
-				const response = await axios.get("/analytics");
+				const response = await axiosInstance.get("/analytics");
 				setAnalyticsData(response.data.analyticsData);
 				setDailySalesData(response.data.dailySalesData);
 			} catch (error) {

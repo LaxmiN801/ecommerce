@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import axios from "../lib/axios.js";
+import axiosInstance from "../lib/axios.js";
 import { toast } from "react-hot-toast";
 
 export const useProductStore = create((set, get) => ({
@@ -10,7 +10,7 @@ export const useProductStore = create((set, get) => ({
 	createProduct: async (productData) => {
 		set({ loading: true });
 		try {
-			const res = await axios.post("/products", productData);
+			const res = await axiosInstance.post("/products", productData);
 			set((prevState) => ({
 				products: [...prevState.products, res.data.products],
 				loading: false,
@@ -24,7 +24,7 @@ export const useProductStore = create((set, get) => ({
 	fetchAllProducts: async () => {
 		set({ loading: true });
 		try {
-			const response = await axios.get("/products");
+			const response = await axiosInstance.get("/products");
 			set({ products: response.data.products, loading: false });
 		} catch (error) {
 			set({ error: "Failed to fetch products", loading: false });
@@ -35,7 +35,7 @@ export const useProductStore = create((set, get) => ({
 	toggleFeaturedProduct: async (productId) => {
 		set({ loading: true });
 		try {
-			const response = await axios.patch(`/products/${productId}`);
+			const response = await axiosInstance.patch(`/products/${productId}`);
 			set((prevProducts) => ({
 				products: prevProducts.products.map((product) =>
 					product._id === productId ? response.data.products : product
@@ -51,7 +51,7 @@ export const useProductStore = create((set, get) => ({
 	deleteProduct: async (productId) => {
 		set({ loading: true });
 		try {
-			await axios.delete(`/products/${productId}`);
+			await axiosInstance.delete(`/products/${productId}`);
 			set((prevProducts) => ({
 				products: prevProducts.products.filter((product) => product._id !== productId),
 				loading: false,
@@ -65,7 +65,7 @@ export const useProductStore = create((set, get) => ({
 	fetchFeaturedProducts: async () => {
 		set({ loading: true });
 		try {
-			const response = await axios.get("/products/featured");
+			const response = await axiosInstance.get("/products/featured");
 			set({ products: response.data.products, loading: false });
 		} catch (error) {
 			set({ error: "Failed to fetch products", loading: false });
@@ -77,7 +77,7 @@ export const useProductStore = create((set, get) => ({
 	set({ loading: true, error: null });
 
 	try {
-		const response = await axios.get(`/products/category/${category}`);
+		const response = await axiosInstance.get(`/products/category/${category}`);
 		set({ products: response.data.products, loading: false });
 	} catch (error) {
 		const status = error.response?.status;

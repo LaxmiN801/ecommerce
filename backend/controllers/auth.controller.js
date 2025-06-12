@@ -150,13 +150,14 @@ export const refreshToken = async (req, res) => {
 export const getProfile = async (req, res) => {
 	try {
 		if (!req.user) {
-			return res.status(400).json({ success: false, message: "Unauthorized" });
+			return res.status(402).json({ success: false, message: "Unauthorized" });
 		}
 
 		return res.status(200).json({
 			success: true,
 			user: req.user,
 		});
+		// return res.status(401).json({ message: "Force test 401" });
 	} catch (error) {
 		console.error("Get Profile Error:", error.message);
 		return res.status(500).json({ success: false, message: "Internal server error" });
