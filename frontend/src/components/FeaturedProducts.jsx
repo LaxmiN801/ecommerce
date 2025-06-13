@@ -1,10 +1,13 @@
+import toast from "react-hot-toast";
 import { useEffect, useState } from "react";
 import { ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCartStore } from "../stores/useCartStore";
+import { useUserStore } from "../stores/useUserStore";
 
 const FeaturedProducts = ({ featuredProducts }) => {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [itemsPerPage, setItemsPerPage] = useState(4);
+	const { user } = useUserStore();
 	const { addToCart } = useCartStore();
 
 	useEffect(() => {
@@ -18,6 +21,14 @@ const FeaturedProducts = ({ featuredProducts }) => {
 		window.addEventListener("resize", handleResize);
 		return () => window.removeEventListener("resize", handleResize);
 	}, []);
+
+	const handleAddToCart = (product) => {
+			if (!user) {
+				toast.error("Please login to add products to cart", { id: "login" });
+				return;
+			}
+			addToCart(product);
+		};
 
 	const nextSlide = () => {
 		setCurrentIndex((prev) => prev + itemsPerPage);
@@ -60,7 +71,7 @@ const FeaturedProducts = ({ featuredProducts }) => {
 											<p className='text-yellow-500 font-bold mb-3'>${product.price}</p>
 										</div>
 										<button
-											onClick={() => addToCart(product)}
+											onClick={() => handleAddToCart(product)}
 											className='mt-auto w-full bg-[#0f172a] hover:bg-yellow-400 transition-colors text-white font-semibold py-2 px-4 rounded flex items-center justify-center'
 										>
 											<ShoppingCart className='w-5 h-5 mr-2' />
