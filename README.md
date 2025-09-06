@@ -56,7 +56,7 @@ Includes authentication, product & cart management, payments, and admin features
 
 ```bash
 # Clone repo
-git clone https://github.com/yourusername/ecommerce.git
+git clone https://github.com/LaxmiN801/ecommerce.git
 
 # Install dependencies
 cd ecommerce
